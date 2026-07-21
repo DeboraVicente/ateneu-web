@@ -1,12 +1,36 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import AuthPage from '@/modules/auth/views/AuthPage.vue';
+import { useAuthStore } from '@/stores/auth.store';
+import HomeView from '@/views/HomeView.vue';
+import CalendarView from '@/views/CalendarView.vue';
+import MapView from '@/views/MapView.vue';
+import EventDetailView from '@/views/EventDetailView.vue';
+import PlaceDetailView from '@/views/PlaceDetailView.vue';
+import FavoritesView from '@/views/FavoritesView.vue';
+import AuthView from '@/views/AuthView.vue';
+import NotFoundView from '@/views/NotFoundView.vue';
 
 const routes = [
-  { path: '/auth', name: 'auth', component: AuthPage },
-  { path: '/', redirect: '/auth' }
+  { path: '/', name: 'home', component: HomeView },
+  { path: '/mapa', name: 'map', component: MapView },
+  { path: '/calendario', name: 'calendar', component: CalendarView },
+  { path: '/evento/:id', name: 'event-detail', component: EventDetailView },
+  { path: '/local/:id', name: 'place-detail', component: PlaceDetailView },
+  { path: '/favoritos', name: 'favorites', component: FavoritesView, meta: { requiresAuth: true } },
+  { path: '/auth', name: 'auth', component: AuthView },
+  { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView },
 ];
 
 export const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+  scrollBehavior: () => ({ top: 0 }),
+});
+
+router.beforeEach((to) => {
+  if (to.meta.requiresAuth) {
+    const auth = useAuthStore();
+    if (!auth.isAuth) {
+      return { name: 'auth', query: { redirect: to.fullPath } };
+    }
+  }
 });
