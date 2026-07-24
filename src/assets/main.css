@@ -1,18 +1,42 @@
 :root {
-  --purple: #7C3AED;
-  --purple-light: #A78BFA;
-  --purple-dark: #5B21B6;
-  --pink: #EC4899;
-  --pink-light: #F472B6;
-  --bg: #0D0D12;
-  --bg2: #13131A;
-  --bg3: #1A1A26;
-  --card: #16161F;
-  --border: rgba(124, 58, 237, 0.18);
-  --text: #F0EBF8;
-  --text-muted: #8B85A0;
-  --success: #10B981;
-  --error: #F43F5E;
+  /* Paleta base do Ateneu */
+  --azul: #274B9B;
+  --verde: #5F935D;
+  --verde-lima: #95C11F;
+  --rosa: #E9C3E6;
+  --vermelho: #A81919;
+
+  /* Marca / ações */
+  --purple: var(--azul);
+  --purple-light: color-mix(in srgb, var(--azul) 60%, white);
+  --purple-dark: color-mix(in srgb, var(--azul) 78%, black);
+  --purple-gl: color-mix(in srgb, var(--azul) 45%, transparent);
+  --purple-l: var(--purple-light);
+  --pink: var(--rosa);
+  --pink-light: color-mix(in srgb, var(--rosa) 60%, white);
+  --accent: var(--azul);
+
+  /* Estados */
+  --success: var(--verde);
+  --green: var(--verde);
+  --error: var(--vermelho);
+  --amber: var(--verde-lima);
+
+  /* Superfícies (tema único, claro) */
+  --bg: #FAF7FB;
+  --bg2: #F2ECF4;
+  --bg3: #EAE1ED;
+  --card: #FFFFFF;
+  --card2: #FFFFFF;
+  --border: color-mix(in srgb, var(--azul) 18%, transparent);
+  --border2: color-mix(in srgb, var(--azul) 10%, transparent);
+
+  /* Texto */
+  --text: #211D29;
+  --text2: #5B5566;
+  --text3: #948DA1;
+  --text-muted: var(--text3);
+
   --radius: 14px;
   --font-display: 'Syne', sans-serif;
   --font-body: 'DM Sans', sans-serif;
@@ -20,162 +44,115 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body { 
-  height: 100%; 
-  font-family: var(--font-body); 
-  background: var(--bg); 
-  color: var(--text); 
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
 }
 
 #app { min-height: 100vh; }
 
+/* ---------- Botões ---------- */
+.btn-primary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 20px; border-radius: 50px; border: none;
+  background: linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%);
+  color: #fff; font-family: var(--font-body); font-weight: 700; font-size: 14px;
+  cursor: pointer; text-decoration: none;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px var(--purple-gl); }
+.btn-primary:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-ghost {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 20px; border-radius: 50px;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text); font-family: var(--font-body); font-weight: 600; font-size: 14px;
+  cursor: pointer; text-decoration: none; transition: .15s;
+}
+.btn-ghost:hover { border-color: var(--purple); color: var(--purple); background: var(--bg2); }
+
+/* ---------- Pills (filtros, abas) ---------- */
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 50px;
+  font-family: var(--font-body); font-size: 13px; font-weight: 500;
+  color: var(--text2); background: var(--card);
+  border: 1px solid var(--border2); cursor: pointer;
+  white-space: nowrap; transition: .15s;
+}
+.pill:hover { color: var(--text); border-color: var(--border); }
+.pill.active { color: #fff; background: var(--purple); border-color: var(--purple); }
+
+/* ---------- Cards ---------- */
+.card-surface {
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  transition: transform .2s, border-color .2s, box-shadow .2s;
+}
+.card-surface:hover {
+  border-color: var(--border); transform: translateY(-3px);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--azul) 14%, transparent);
+}
+
+/* ---------- Inputs ---------- */
+.input-base {
+  width: 100%; padding: 11px 14px; border-radius: 10px;
+  background: var(--bg2); border: 1px solid var(--border2);
+  color: var(--text); font-family: var(--font-body); font-size: 14px;
+  outline: none; transition: .15s;
+}
+.input-base::placeholder { color: var(--text3); }
+.input-base:focus { border-color: var(--purple); background: var(--card); box-shadow: 0 0 0 3px var(--purple-gl); }
+.input-error { border-color: var(--error) !important; }
+
 input[type="text"], input[type="email"], input[type="password"] {
-  width: 100%;
-  padding: 12px 14px;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  color: var(--text);
-  outline: none;
-  transition: all 0.2s;
   padding-right: 40px;
 }
 
-input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(124,58,237,0.15); }
-input.has-error { border-color: var(--error); }
-
-.btn-submit {
-  width: 100%; 
-  padding: 14px;
-  background: linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%);
-  border: none; 
-  border-radius: 11px;
-  color: white; 
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.2s;
+/* ---------- Tags de categoria ---------- */
+.tag {
+  display: inline-flex; align-items: center; padding: 4px 11px;
+  border-radius: 50px; font-size: 11px; font-weight: 700;
+  letter-spacing: .3px; white-space: nowrap;
+  background: var(--bg3); color: var(--text2); border: 1px solid var(--border2);
+}
+.tag-CINEMA, .tag-GASTRONOMIA {
+  background: color-mix(in srgb, var(--vermelho) 12%, white); color: var(--vermelho);
+  border-color: color-mix(in srgb, var(--vermelho) 30%, white);
+}
+.tag-TEATRO, .tag-MUSEU, .tag-EXPOSICAO {
+  background: color-mix(in srgb, var(--azul) 12%, white); color: var(--azul);
+  border-color: color-mix(in srgb, var(--azul) 30%, white);
+}
+.tag-SHOWS {
+  background: color-mix(in srgb, var(--rosa) 55%, white);
+  color: color-mix(in srgb, var(--rosa) 45%, var(--vermelho));
+  border-color: color-mix(in srgb, var(--rosa) 70%, var(--vermelho));
+}
+.tag-PARQUE, .tag-AR_LIVRE {
+  background: color-mix(in srgb, var(--verde) 12%, white); color: var(--verde);
+  border-color: color-mix(in srgb, var(--verde) 30%, white);
+}
+.tag-IGREJA, .tag-FEIRA {
+  background: color-mix(in srgb, var(--verde-lima) 15%, white);
+  color: color-mix(in srgb, var(--verde-lima) 65%, black);
+  border-color: color-mix(in srgb, var(--verde-lima) 35%, white);
+}
+.tag-OUTRO { background: var(--bg3); color: var(--text2); border-color: var(--border2); }
+.tag-free {
+  background: color-mix(in srgb, var(--verde) 12%, white); color: var(--verde);
+  border-color: color-mix(in srgb, var(--verde) 30%, white);
 }
 
-.btn-submit:hover { transform: translateY(-1px); }
+/* ---------- Entrada suave dos cards ---------- */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.fade-up { animation: fadeUp .4s ease both; }
 
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
-
-.fade-enter-from {
-  opacity: 0;
-  transform: translateX(10px);
-}
-
-.fade-leave-to {
-  opacity: 0;
-  transform: translateX(-10px);
-}
-
-.auth-tabs {
-  display: flex;
-  background: var(--bg3);
-  border-radius: 10px;
-  padding: 4px;
-  margin-bottom: 32px;
-  border: 1px solid var(--border);
-}
-
-.auth-tab {
-  flex: 1; 
-  padding: 10px 0;
-  text-align: center;
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  border-radius: 7px;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  color: var(--text-muted);
-  border: none;
-  background: none;
-}
-
-.auth-tab.active {
-  background: linear-gradient(135deg, var(--purple), var(--purple-dark));
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
-}
-
-.social-btns {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.social-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 12px;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.social-btn:hover {
-  border-color: var(--purple-light);
-  background: rgba(124, 58, 237, 0.08);
-}
-
-.social-btn svg {
-  width: 18px;
-  height: 18px;
-}
-
-.input-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.toggle-pw {
-  position: absolute;
-  right: 12px;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  transition: color 0.2s;
-}
-
-.toggle-pw:hover {
-  color: var(--purple-light);
-}
-
-.divider {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin: 20px 0;
-}
-
-.divider-line {
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-
-.divider-text {
-  font-size: 12px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
+.fade-enter-from { opacity: 0; transform: translateX(10px); }
+.fade-leave-to { opacity: 0; transform: translateX(-10px); }
