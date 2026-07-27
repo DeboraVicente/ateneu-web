@@ -83,7 +83,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick, createApp, h } from 'vue';
-import L from 'leaflet';
+import L from '@/lib/leaflet';
 import 'leaflet.markercluster';
 import { Search, MapPin, X, Check, LocateFixed } from 'lucide-vue-next';
 import { usePlacesStore } from '@/stores/places.store';
