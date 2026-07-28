@@ -2,18 +2,24 @@
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth.store';
 import { usePlacesStore } from '@/stores/places.store';
+import { useMoviesStore } from '@/stores/movies.store';
 import AppButton from '@/components/AppButton.vue';
 import PlaceCard from '@/components/PlaceCard.vue';
+import MovieCard from '@/components/MovieCard.vue';
 
 const authStore  = useAuthStore();
 const placesStore = usePlacesStore();
+const moviesStore = useMoviesStore();
 const searchQuery = ref('');
 
 function search() {
   placesStore.setFilter('search', searchQuery.value);
 }
 
-onMounted(() => placesStore.fetchPlaces(true));
+onMounted(() => {
+  placesStore.fetchPlaces(true);
+  moviesStore.fetchNowPlaying();
+});
 </script>
 
 <template>
@@ -46,6 +52,17 @@ onMounted(() => placesStore.fetchPlaces(true));
         <PlaceCard v-for="place in placesStore.items" :key="place.id" :place="place" />
       </div>
     </section>
+
+    <section class="grid-section" v-if="moviesStore.loading || moviesStore.items.length">
+      <div class="section-header">
+        <h2>Em cartaz no cinema</h2>
+      </div>
+
+      <div v-if="moviesStore.loading" class="status-text">Carregando...</div>
+      <div v-else class="movies-row">
+        <MovieCard v-for="movie in moviesStore.items" :key="movie.id" :movie="movie" />
+      </div>
+    </section>
   </div>
 </template>
 
@@ -75,4 +92,9 @@ onMounted(() => placesStore.fetchPlaces(true));
 .cards-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-top: 30px; }
 @media(max-width:1100px){ .cards-grid { grid-template-columns: repeat(3,1fr); } }
 @media(max-width:780px) { .cards-grid { grid-template-columns: repeat(2,1fr); } }
+
+.movies-row {
+  display: flex; gap: 16px; margin-top: 30px;
+  overflow-x: auto; scrollbar-width: none; padding-bottom: 4px;
+}
 </style>
