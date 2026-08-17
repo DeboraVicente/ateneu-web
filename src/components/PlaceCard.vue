@@ -15,7 +15,7 @@
       </button>
 
       <!-- Category tag -->
-      <span class="card-tag" :class="`tag-${place.category}`">
+      <span class="card-tag" :class="`tag tag-${place.category}`">
         {{ categoryLabel }}
       </span>
     </div>

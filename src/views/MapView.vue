@@ -14,6 +14,15 @@
         </button>
       </div>
 
+      <!-- Em cartaz no cinema — só quando filtrando por Cinema -->
+      <div v-if="placesStore.filters.category === 'CINEMA'" class="map-movies">
+        <div class="map-movies-header">Em cartaz no cinema</div>
+        <div v-if="moviesStore.loading" class="loading-text">Carregando...</div>
+        <div v-else class="movies-row">
+          <MovieCard v-for="movie in moviesStore.items" :key="movie.id" :movie="movie" />
+        </div>
+      </div>
+
       <!-- Results list -->
       <div class="map-results">
         <div v-if="placesStore.loading" class="loading-text">Carregando...</div>
@@ -87,17 +96,20 @@ import L from '@/lib/leaflet';
 import 'leaflet.markercluster';
 import { Search, MapPin, X, Check, LocateFixed } from 'lucide-vue-next';
 import { usePlacesStore } from '@/stores/places.store';
+import { useMoviesStore } from '@/stores/movies.store';
 import { categoryIcon } from '@/lib/categoryIcons';
 import { categoryColor } from '@/lib/categoryColors';
 import { useGeolocation } from '@/composables/useGeolocation';
 import AppButton from '@/components/AppButton.vue';
+import MovieCard from '@/components/MovieCard.vue';
 import type { Place } from '@/stores/places.store';
 
 const CAMPINAS = { lat: -22.9099, lng: -47.0626 };
 
 const placesStore    = usePlacesStore();
+const moviesStore    = useMoviesStore();
 const search         = ref('');
-const activeCategory = ref('');
+const activeCategory = ref(placesStore.filters.category);
 const selectedPlace  = ref<Place | null>(null);
 const mapEl          = ref<HTMLDivElement | null>(null);
 const radiusKm       = ref(10);
@@ -117,7 +129,6 @@ const categories = [
   { value: 'TEATRO',      label: 'Teatros' },
   { value: 'PARQUE',      label: 'Parques' },
   { value: 'EXPOSICAO',   label: 'Exposições' },
-  { value: 'GASTRONOMIA', label: 'Gastronomia' },
   { value: 'CINEMA',      label: 'Cinemas' },
   { value: 'IGREJA',      label: 'Igrejas' },
   { value: 'FEIRA',       label: 'Feiras' },
@@ -199,6 +210,14 @@ function setCategory(val: string) {
   activeCategory.value = val;
   placesStore.setFilter('category', val);
 }
+
+// Cobre tanto trocar de categoria aqui no mapa quanto chegar nesta página
+// já filtrando por Cinema (ex: vindo da Home).
+watch(() => placesStore.filters.category, (category) => {
+  if (category === 'CINEMA' && !moviesStore.items.length) {
+    moviesStore.fetchNowPlaying();
+  }
+}, { immediate: true });
 function selectPlace(place: Place) {
   selectedPlace.value = place;
   if (map) map.panTo([place.lat, place.lng]);
@@ -228,6 +247,14 @@ async function findNearby() {
 .search-icon-sm { position: absolute; left: 28px; top: 50%; transform: translateY(-50%); color: var(--text3); }
 .map-cat-pills { display: flex; gap: 6px; padding: 0 16px 12px; overflow-x: auto; scrollbar-width: none; flex-wrap: wrap; }
 .map-cat-pills::-webkit-scrollbar { display: none; }
+
+.map-movies { padding: 0 16px 14px; border-bottom: 1px solid var(--border2); }
+.map-movies-header { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; margin-bottom: 10px; }
+.movies-row { display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+.movies-row::-webkit-scrollbar { display: none; }
+.movies-row :deep(.movie-card) { flex: 0 0 120px; }
+.movies-row :deep(.movie-poster) { height: 170px; }
+
 .map-results { flex: 1; overflow-y: auto; padding: 0 8px 16px; }
 .loading-text { padding: 20px; text-align: center; color: var(--text3); font-size: 13px; }
 .map-result-item { display: flex; align-items: center; gap: 10px; padding: 10px 10px; border-radius: 10px; cursor: pointer; transition: .15s; margin-bottom: 4px; }

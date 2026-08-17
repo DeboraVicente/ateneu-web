@@ -87,7 +87,6 @@ const categories = [
   { value: 'CINEMA',      label: 'Cinema' },
   { value: 'TEATRO',      label: 'Teatro' },
   { value: 'SHOWS',       label: 'Shows' },
-  { value: 'GASTRONOMIA', label: 'Gastronomia' },
   { value: 'MUSEU',       label: 'Museus' },
   { value: 'PARQUE',      label: 'Parques' },
   { value: 'IGREJA',      label: 'Igrejas' },

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth.store';
 import { usePlacesStore } from '@/stores/places.store';
 import { useMoviesStore } from '@/stores/movies.store';
@@ -16,9 +16,23 @@ function search() {
   placesStore.setFilter('search', searchQuery.value);
 }
 
+// Apagar o texto sem apertar Enter precisa limpar o filtro também,
+// senão os resultados ficam presos numa busca que não está mais visível.
+watch(searchQuery, (val) => {
+  if (val === '' && placesStore.filters.search !== '') {
+    placesStore.setFilter('search', '');
+  }
+});
+
+// "Em cartaz" só faz sentido enquanto o filtro ativo é Cinema (ver AppNav cat-bar).
+watch(() => placesStore.filters.category, (category) => {
+  if (category === 'CINEMA' && !moviesStore.items.length) {
+    moviesStore.fetchNowPlaying();
+  }
+}, { immediate: true });
+
 onMounted(() => {
   placesStore.fetchPlaces(true);
-  moviesStore.fetchNowPlaying();
 });
 </script>
 
@@ -41,19 +55,25 @@ onMounted(() => {
     </section>
 
     <section class="grid-section">
-      <div class="section-header">
-        <h2>Destaques da semana</h2>
-        <span v-if="authStore.isAuth">Especiais para você, {{ authStore.user?.firstName }}</span>
+      <div v-if="authStore.isAuth" class="section-header">
+        <span>Especiais para você, {{ authStore.user?.firstName }}</span>
       </div>
 
-      <div v-if="placesStore.loading" class="status-text">Carregando...</div>
+      <div v-if="placesStore.loading && !placesStore.items.length" class="status-text">Carregando...</div>
       <div v-else-if="!placesStore.items.length" class="status-text">Nenhum local encontrado.</div>
-      <div v-else class="cards-grid">
-        <PlaceCard v-for="place in placesStore.items" :key="place.id" :place="place" />
-      </div>
+      <template v-else>
+        <div class="cards-grid">
+          <PlaceCard v-for="place in placesStore.items" :key="place.id" :place="place" />
+        </div>
+        <div v-if="placesStore.hasMore" class="load-more">
+          <AppButton variant="ghost" :loading="placesStore.loading" @click="placesStore.nextPage">
+            Carregar mais
+          </AppButton>
+        </div>
+      </template>
     </section>
 
-    <section class="grid-section" v-if="moviesStore.loading || moviesStore.items.length">
+    <section class="grid-section" v-if="placesStore.filters.category === 'CINEMA' && (moviesStore.loading || moviesStore.items.length)">
       <div class="section-header">
         <h2>Em cartaz no cinema</h2>
       </div>
@@ -92,6 +112,8 @@ onMounted(() => {
 .cards-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-top: 30px; }
 @media(max-width:1100px){ .cards-grid { grid-template-columns: repeat(3,1fr); } }
 @media(max-width:780px) { .cards-grid { grid-template-columns: repeat(2,1fr); } }
+
+.load-more { display: flex; justify-content: center; margin-top: 30px; }
 
 .movies-row {
   display: flex; gap: 16px; margin-top: 30px;
