@@ -23,26 +23,24 @@ export interface AteneuEvent {
 export interface EventFilters {
   search:   string;
   category: string;
-  date:     string;
   isFree:   boolean | null;
-  page:     number;
-  limit:    number;
 }
 
 export const useEventsStore = defineStore('events', () => {
-  const items   = ref<AteneuEvent[]>([]);
+  // Todos os eventos que casam com os filtros (busca/categoria/gratuito) — sem
+  // recorte por dia/mês, para alimentar o calendário inteiro de uma vez. Navegar
+  // entre meses e clicar num dia filtra esse conjunto no cliente, sem novo fetch.
+  const items = ref<AteneuEvent[]>([]);
+  // "Destaques" da sidebar: os próximos eventos, independente do que está sendo
+  // navegado no calendário (dia selecionado, mês, filtros) — busca própria e única.
+  const highlights = ref<AteneuEvent[]>([]);
+
   const total   = ref(0);
-  const pages   = ref(1);
   const loading = ref(false);
   const error   = ref<string | null>(null);
 
-  const filters = ref<EventFilters>({
-    search: '', category: '', date: '', isFree: null, page: 1, limit: 20,
-  });
+  const filters = ref<EventFilters>({ search: '', category: '', isFree: null });
 
-  const hasMore = computed(() => filters.value.page < pages.value);
-
-  // Group events by date for calendar view
   const byDate = computed(() => {
     const map: Record<string, AteneuEvent[]> = {};
     for (const ev of items.value) {
@@ -53,29 +51,18 @@ export const useEventsStore = defineStore('events', () => {
     return map;
   });
 
-  async function fetchEvents(reset = false) {
-    if (reset) { filters.value.page = 1; items.value = []; }
+  async function fetchEvents() {
     loading.value = true;
     error.value   = null;
     try {
-      const params: Record<string, unknown> = {
-        page:  filters.value.page,
-        limit: filters.value.limit,
-        upcoming: 'true',
-      };
+      const params: Record<string, unknown> = { page: 1, limit: 200, upcoming: 'false' };
       if (filters.value.search)   params.search   = filters.value.search;
       if (filters.value.category) params.category = filters.value.category;
-      if (filters.value.date)     params.date     = filters.value.date;
       if (filters.value.isFree !== null) params.isFree = filters.value.isFree;
 
       const { data } = await api.get('/events', { params });
-      if (reset) {
-        items.value = data.data;
-      } else {
-        items.value.push(...data.data);
-      }
+      items.value = data.data;
       total.value = data.total;
-      pages.value = data.pages;
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Erro ao carregar eventos.';
     } finally {
@@ -83,14 +70,19 @@ export const useEventsStore = defineStore('events', () => {
     }
   }
 
+  async function fetchHighlights() {
+    try {
+      const { data } = await api.get('/events', { params: { page: 1, limit: 4, upcoming: 'true' } });
+      highlights.value = data.data;
+    } catch {
+      // destaques são complementares — falha aqui não deve travar o calendário
+    }
+  }
+
   function setFilter<K extends keyof EventFilters>(key: K, value: EventFilters[K]) {
     filters.value[key] = value;
-    fetchEvents(true);
+    fetchEvents();
   }
 
-  function selectDate(date: string) {
-    setFilter('date', filters.value.date === date ? '' : date);
-  }
-
-  return { items, total, pages, loading, error, filters, hasMore, byDate, fetchEvents, setFilter, selectDate };
+  return { items, highlights, total, loading, error, filters, byDate, fetchEvents, fetchHighlights, setFilter };
 });

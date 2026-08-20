@@ -35,6 +35,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { Heart, MapPin } from 'lucide-vue-next';
 import { useFavoritesStore } from '@/stores/favorites.store';
 import { categoryIcon } from '@/lib/categoryIcons';
@@ -42,7 +43,9 @@ import type { Place } from '@/stores/places.store';
 
 const props = defineProps<{ place: Place }>();
 
-const favs = useFavoritesStore();
+const favs   = useFavoritesStore();
+const route  = useRoute();
+const router = useRouter();
 const isFaved = computed(() => favs.isFaved(props.place.id));
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -91,7 +94,7 @@ const priceClass = computed(() => {
 async function handleFav() {
   const ok = await favs.toggle(props.place.id);
   if (!ok) {
-    // not logged in — could emit event to open auth modal
+    router.push({ name: 'auth', query: { redirect: route.fullPath } });
   }
 }
 </script>

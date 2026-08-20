@@ -9,9 +9,15 @@
           {{ monthNames[currentMonth] }} {{ currentYear }}
         </h2>
         <div class="cal-nav">
-          <button class="nav-btn" @click="prevMonth"><ChevronLeft :size="16" /></button>
+          <span class="tooltip-wrap">
+            <button class="nav-btn" :disabled="!canGoPrev" @click="prevMonth"><ChevronLeft :size="16" /></button>
+            <span v-if="!canGoPrev" class="tooltip-bubble">Visualização de 3 meses — este é o mês mais antigo disponível</span>
+          </span>
           <button class="nav-btn today-btn" @click="goToday">Hoje</button>
-          <button class="nav-btn" @click="nextMonth"><ChevronRight :size="16" /></button>
+          <span class="tooltip-wrap">
+            <button class="nav-btn" :disabled="!canGoNext" @click="nextMonth"><ChevronRight :size="16" /></button>
+            <span v-if="!canGoNext" class="tooltip-bubble">Visualização de 3 meses — este é o mês mais distante disponível</span>
+          </span>
         </div>
       </div>
 
@@ -27,19 +33,6 @@
             class="input-base search-input"
             @input="onSearch"
           />
-        </div>
-
-        <!-- Category pills -->
-        <div class="filter-pills">
-          <button
-            v-for="cat in eventCategories"
-            :key="cat.value"
-            class="pill"
-            :class="{ active: eventsStore.filters.category === cat.value }"
-            @click="toggleCategory(cat.value)"
-          >
-            <component :is="categoryIcon(cat.value)" :size="14" /> {{ cat.label }}
-          </button>
         </div>
 
         <!-- Free toggle -->
@@ -66,7 +59,7 @@
               'other-month': !cell.current,
               'is-today': cell.isToday,
               'has-events': cell.hasEvents,
-              'is-selected': eventsStore.filters.date === cell.dateStr,
+              'is-selected': selectedDate === cell.dateStr,
             }"
             @click="cell.current && selectDay(cell.dateStr)"
           >
@@ -139,7 +132,7 @@
     <aside class="cal-sidebar">
       <h2 class="section-title" style="margin-bottom: 16px;">Destaques da Semana</h2>
       <RouterLink
-        v-for="event in eventsStore.items.slice(0, 4)"
+        v-for="event in eventsStore.highlights"
         :key="'side-'+event.id"
         :to="`/evento/${event.id}`"
         class="side-card card-surface"
@@ -151,7 +144,7 @@
           <div class="side-date">{{ formatDate(event.date) }}</div>
           <div class="side-title">{{ event.title }}</div>
         </div>
-        <button class="side-btn" @click.prevent>Ver Detalhes</button>
+        <button class="side-btn">Ver Detalhes</button>
       </RouterLink>
     </aside>
   </div>
@@ -169,6 +162,18 @@ const now          = new Date();
 const currentMonth = ref(now.getMonth());
 const currentYear  = ref(now.getFullYear());
 const searchQuery  = ref('');
+// Dia clicado no grid — puramente local: filtra o que já foi carregado, sem
+// disparar um novo fetch (o fetch só depende de busca/categoria/gratuito).
+const selectedDate = ref('');
+
+// Navegação travada numa janela de "mês atual até +3 meses" — calculada a partir
+// de hoje (não fixa), evita meses vazios sem fim e mantém o calendário focado no
+// horizonte de conteúdo que de fato cadastramos.
+const monthIndex = (y: number, m: number) => y * 12 + m;
+const minMonthIdx = monthIndex(now.getFullYear(), now.getMonth());
+const maxMonthIdx = minMonthIdx + 3;
+const canGoPrev = computed(() => monthIndex(currentYear.value, currentMonth.value) > minMonthIdx);
+const canGoNext = computed(() => monthIndex(currentYear.value, currentMonth.value) < maxMonthIdx);
 
 const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const dayNames   = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
@@ -178,15 +183,6 @@ const LABEL: Record<string,string> = {
   MUSEU:'Museu', PARQUE:'Parque', IGREJA:'Igreja', FEIRA:'Feira',
   EXPOSICAO:'Exposição', AR_LIVRE:'Ar Livre', OUTRO:'Evento',
 };
-
-const eventCategories = [
-  { value: '', label: 'Todos' },
-  { value: 'SHOWS', label: 'Shows' },
-  { value: 'TEATRO', label: 'Teatro' },
-  { value: 'GASTRONOMIA', label: 'Gastronomia' },
-  { value: 'MUSEU', label: 'Museus' },
-  { value: 'PARQUE', label: 'Parques' },
-];
 
 // Calendar cells
 const calendarCells = computed(() => {
@@ -224,40 +220,45 @@ const calendarCells = computed(() => {
   return cells;
 });
 
+// Eventos do mês em exibição (fallback quando nenhum dia específico está selecionado).
+const monthEvents = computed(() => {
+  const prefix = `${currentYear.value}-${String(currentMonth.value + 1).padStart(2,'0')}`;
+  return eventsStore.items
+    .filter(ev => ev.date.slice(0, 7) === prefix)
+    .sort((a, b) => a.date.localeCompare(b.date));
+});
+
 const selectedDateLabel = computed(() => {
-  const d = eventsStore.filters.date;
-  if (!d) return `Eventos — ${monthNames[currentMonth.value]}`;
-  const date = new Date(d + 'T00:00:00');
+  if (!selectedDate.value) return `Eventos — ${monthNames[currentMonth.value]}`;
+  const date = new Date(selectedDate.value + 'T00:00:00');
   return `Eventos em ${date.getDate()} de ${monthNames[date.getMonth()]}`;
 });
 
 const selectedEvents = computed(() => {
-  const d = eventsStore.filters.date;
-  if (!d) return eventsStore.items;
-  return eventsStore.byDate[d] ?? [];
+  if (!selectedDate.value) return monthEvents.value;
+  return eventsStore.byDate[selectedDate.value] ?? [];
 });
 
 function toDateStr(y: number, m: number, d: number) {
   return `${y}-${String(m + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 }
 function selectDay(dateStr: string) {
-  eventsStore.selectDate(dateStr);
+  selectedDate.value = selectedDate.value === dateStr ? '' : dateStr;
 }
 function prevMonth() {
+  if (!canGoPrev.value) return;
   if (currentMonth.value === 0) { currentMonth.value = 11; currentYear.value--; }
   else currentMonth.value--;
 }
 function nextMonth() {
+  if (!canGoNext.value) return;
   if (currentMonth.value === 11) { currentMonth.value = 0; currentYear.value++; }
   else currentMonth.value++;
 }
 function goToday() {
   currentMonth.value = now.getMonth();
   currentYear.value  = now.getFullYear();
-  eventsStore.selectDate(toDateStr(now.getFullYear(), now.getMonth(), now.getDate()));
-}
-function toggleCategory(val: string) {
-  eventsStore.setFilter('category', eventsStore.filters.category === val ? '' : val);
+  selectedDate.value = toDateStr(now.getFullYear(), now.getMonth(), now.getDate());
 }
 function toggleFree() {
   eventsStore.setFilter('isFree', eventsStore.filters.isFree === true ? null : true);
@@ -274,7 +275,10 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' });
 }
 
-onMounted(() => eventsStore.fetchEvents(true));
+onMounted(() => {
+  eventsStore.fetchEvents();
+  eventsStore.fetchHighlights();
+});
 </script>
 
 <style scoped>
@@ -288,6 +292,23 @@ onMounted(() => eventsStore.fetchEvents(true));
 .cal-nav { display: flex; align-items: center; gap: 6px; }
 .nav-btn { width: 34px; height: 34px; border-radius: 50%; background: var(--card); border: 1px solid var(--border2); color: var(--text2); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: .15s; }
 .nav-btn:hover { border-color: var(--purple); color: var(--accent); }
+.nav-btn:disabled { opacity: .35; cursor: not-allowed; }
+.nav-btn:disabled:hover { border-color: var(--border2); color: var(--text2); }
+
+.tooltip-wrap { position: relative; display: inline-flex; }
+.tooltip-bubble {
+  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  background: var(--card2, #1a1630); color: var(--text, #fff); font-size: 12px; line-height: 1.4;
+  padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border2);
+  width: 200px; text-align: center; pointer-events: none;
+  opacity: 0; visibility: hidden; transition: opacity .15s, visibility .15s; z-index: 20;
+  box-shadow: 0 8px 24px rgba(0,0,0,.25);
+}
+.tooltip-bubble::after {
+  content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  border: 5px solid transparent; border-top-color: var(--card2, #1a1630);
+}
+.tooltip-wrap:hover .tooltip-bubble { opacity: 1; visibility: visible; }
 .today-btn { width: auto; padding: 0 14px; border-radius: 50px; font-size: 13px; font-weight: 500; }
 
 /* Filters */
@@ -295,7 +316,6 @@ onMounted(() => eventsStore.fetchEvents(true));
 .search-wrap { position: relative; }
 .search-icon-sm { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text3); }
 .search-input { padding-left: 32px !important; border-radius: 50px !important; font-size: 13px !important; width: 180px; }
-.filter-pills { display: flex; gap: 6px; flex-wrap: wrap; }
 
 /* Calendar */
 .calendar { background: var(--card); border: 1px solid var(--border2); border-radius: 16px; overflow: hidden; margin-bottom: 28px; }
@@ -356,4 +376,16 @@ onMounted(() => eventsStore.fetchEvents(true));
 .side-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; }
 .side-btn { margin: 6px 14px 12px; padding: 8px; background: transparent; border: 1px solid var(--border); border-radius: 50px; color: var(--accent); font-size: 12px; font-weight: 500; cursor: pointer; transition: .15s; font-family: 'DM Sans', sans-serif; }
 .side-btn:hover { background: var(--purple); border-color: var(--purple); color: #fff; }
+
+/* Mobile: reduz o respiro lateral e o tamanho das células do grid, e deixa a
+   busca ocupar a largura toda em vez de uma coluna fixa de 180px. */
+@media(max-width:600px) {
+  .cal-layout { padding: 16px 12px 60px; gap: 20px; }
+  .cal-cell { min-height: 52px; padding: 6px 4px; }
+  .cell-num { font-size: 12px; }
+  .search-wrap { flex: 1 1 100%; }
+  .search-input { width: 100%; }
+  .event-row { padding: 12px; gap: 10px; }
+  .event-row-thumb { width: 42px; height: 42px; }
+}
 </style>

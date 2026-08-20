@@ -92,7 +92,7 @@
             </div>
             <div class="check-row">
               <input v-model="regForm.terms" type="checkbox" id="terms"/>
-              <label for="terms">Concordo com os <a href="#">Termos de Uso</a> e a <a href="#">Política de Privacidade</a></label>
+              <label for="terms">Concordo com os <RouterLink to="/termos" target="_blank">Termos de Uso</RouterLink> e a <RouterLink to="/privacidade" target="_blank">Política de Privacidade</RouterLink></label>
             </div>
             <AppButton type="submit" block :loading="loading" style="margin-top:4px;">Criar conta</AppButton>
           </form>

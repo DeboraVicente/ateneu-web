@@ -26,9 +26,12 @@
         <AppButton v-if="event.ticketUrl && !event.isFree" :href="event.ticketUrl" target="_blank" block style="margin-top:10px;">
           Comprar Ingresso
         </AppButton>
-        <AppButton variant="ghost" block style="margin-top:10px;" @click="favs.toggle(undefined, event.id)">
+        <AppButton variant="ghost" block style="margin-top:10px;" @click="handleFav">
           <Heart :size="16" :fill="favs.isFaved(undefined, event.id) ? 'currentColor' : 'none'" />
           {{ favs.isFaved(undefined, event.id) ? 'Remover dos favoritos' : 'Favoritar' }}
+        </AppButton>
+        <AppButton v-if="event.place" variant="ghost" block style="margin-top:10px;" :to="`/mapa?local=${event.place.id}`">
+          <MapPin :size="16" /> Ver no Mapa
         </AppButton>
       </div>
     </div>
@@ -40,7 +43,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { ChevronLeft, Calendar, Clock, MapPin, Heart } from 'lucide-vue-next';
 import api from '@/services/api';
 import { useFavoritesStore } from '@/stores/favorites.store';
@@ -49,9 +52,18 @@ import AppButton from '@/components/AppButton.vue';
 import type { AteneuEvent } from '@/stores/events.store';
 
 const route   = useRoute();
+const router  = useRouter();
 const favs    = useFavoritesStore();
 const event   = ref<AteneuEvent | null>(null);
 const loading = ref(true);
+
+async function handleFav() {
+  if (!event.value) return;
+  const ok = await favs.toggle(undefined, event.value.id);
+  if (!ok) {
+    router.push({ name: 'auth', query: { redirect: route.fullPath } });
+  }
+}
 
 const LABEL: Record<string,string> = { CINEMA:'Cinema', TEATRO:'Teatro', SHOWS:'Shows', GASTRONOMIA:'Gastronomia', MUSEU:'Museu', PARQUE:'Parque', IGREJA:'Igreja', FEIRA:'Feira', EXPOSICAO:'Exposição', AR_LIVRE:'Ar Livre', OUTRO:'Evento' };
 

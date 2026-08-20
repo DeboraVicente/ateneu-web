@@ -4,7 +4,7 @@
       <div class="thumb-overlay"></div>
       <component :is="categoryIcon(event.category)" class="thumb-emoji" :size="48" />
 
-      <button class="fav-btn" :class="{ active: isFaved }" @click.prevent="favs.toggle(undefined, event.id)">
+      <button class="fav-btn" :class="{ active: isFaved }" @click.prevent="handleFav">
         <Heart :size="15" :fill="isFaved ? 'currentColor' : 'none'" />
       </button>
       <span class="card-tag" :class="`tag-${event.category}`">{{ categoryLabel }}</span>
@@ -23,14 +23,24 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { Heart, Clock, MapPin } from 'lucide-vue-next';
 import { useFavoritesStore } from '@/stores/favorites.store';
 import { categoryIcon } from '@/lib/categoryIcons';
 import type { AteneuEvent } from '@/stores/events.store';
 
-const props = defineProps<{ event: AteneuEvent }>();
-const favs  = useFavoritesStore();
+const props  = defineProps<{ event: AteneuEvent }>();
+const favs   = useFavoritesStore();
+const route  = useRoute();
+const router = useRouter();
 const isFaved = computed(() => favs.isFaved(undefined, props.event.id));
+
+async function handleFav() {
+  const ok = await favs.toggle(undefined, props.event.id);
+  if (!ok) {
+    router.push({ name: 'auth', query: { redirect: route.fullPath } });
+  }
+}
 
 const CATEGORY_LABEL: Record<string, string> = {
   CINEMA: 'Cinema', TEATRO: 'Teatro', SHOWS: 'Shows', GASTRONOMIA: 'Gastronomia',

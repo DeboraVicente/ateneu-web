@@ -5,21 +5,6 @@
       <img :src="logoUrl" alt="Ateneu" />
     </RouterLink>
 
-    <!-- Search -->
-    <div class="nav-search">
-      <Search class="search-icon" :size="14" />
-      <input
-        v-model="searchQuery"
-        type="text"
-        placeholder="O que você quer fazer hoje?"
-        @input="onSearch"
-        @keydown.enter="goSearch"
-      />
-      <transition name="fade">
-        <button v-if="searchQuery" class="search-clear" @click="clearSearch"><X :size="12" /></button>
-      </transition>
-    </div>
-
     <!-- Nav links -->
     <div class="nav-links">
       <RouterLink class="nav-link" to="/" exact-active-class="active">Descobrir</RouterLink>
@@ -49,13 +34,14 @@
     </template>
   </nav>
 
-  <!-- Category bar (only on home) -->
-  <div v-if="route.path === '/'" class="cat-bar">
+  <!-- Category bar — mesmo padrão visual em Descobrir, Mapa e Calendário, filtrando
+       o dado relevante de cada página (locais nas duas primeiras, eventos na terceira) -->
+  <div v-if="showCatBar" class="cat-bar">
     <button
       v-for="cat in categories"
       :key="cat.value"
       class="pill"
-      :class="{ active: placesStore.filters.category === cat.value }"
+      :class="{ active: activeCategory === cat.value }"
       @click="toggleCategory(cat.value)"
     >
       <component :is="categoryIcon(cat.value)" :size="14" />
@@ -65,21 +51,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Search, X, Heart, LogOut } from 'lucide-vue-next';
+import { Heart, LogOut } from 'lucide-vue-next';
 import { useAuthStore } from '@/stores/auth.store';
 import { usePlacesStore } from '@/stores/places.store';
+import { useEventsStore } from '@/stores/events.store';
 import { categoryIcon } from '@/lib/categoryIcons';
 import AppButton from './AppButton.vue';
 import logoUrl from '@/assets/logo-ateneu.svg';
 
 const auth        = useAuthStore();
 const placesStore = usePlacesStore();
+const eventsStore = useEventsStore();
 const route       = useRoute();
 const router      = useRouter();
 
-const searchQuery = ref('');
 const showMenu    = ref(false);
 
 const categories = [
@@ -89,32 +76,22 @@ const categories = [
   { value: 'SHOWS',       label: 'Shows' },
   { value: 'MUSEU',       label: 'Museus' },
   { value: 'PARQUE',      label: 'Parques' },
+  { value: 'EXPOSICAO',   label: 'Exposições' },
   { value: 'IGREJA',      label: 'Igrejas' },
   { value: 'FEIRA',       label: 'Feiras' },
   { value: 'AR_LIVRE',    label: 'Ar Livre' },
 ];
 
-let debounceTimer: ReturnType<typeof setTimeout>;
-
-function onSearch() {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    placesStore.setFilter('search', searchQuery.value);
-  }, 350);
-}
-
-function goSearch() {
-  placesStore.setFilter('search', searchQuery.value);
-  if (route.path !== '/') router.push('/');
-}
-
-function clearSearch() {
-  searchQuery.value = '';
-  placesStore.setFilter('search', '');
-}
+const showCatBar   = computed(() => ['/', '/mapa', '/calendario'].includes(route.path));
+const isCalendar   = computed(() => route.path === '/calendario');
+const activeCategory = computed(() => isCalendar.value ? eventsStore.filters.category : placesStore.filters.category);
 
 function toggleCategory(val: string) {
-  placesStore.setFilter('category', placesStore.filters.category === val ? '' : val);
+  if (isCalendar.value) {
+    eventsStore.setFilter('category', eventsStore.filters.category === val ? '' : val);
+  } else {
+    placesStore.setFilter('category', placesStore.filters.category === val ? '' : val);
+  }
 }
 
 function logout() {
@@ -139,31 +116,6 @@ function logout() {
   flex-shrink: 0;
 }
 .nav-logo img { height: 44px; width: auto; }
-
-.nav-search {
-  flex: 1; max-width: 400px; margin-left: 8px;
-  position: relative;
-}
-.search-icon {
-  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
-  color: var(--text3);
-}
-.nav-search input {
-  width: 100%; padding: 9px 36px 9px 40px;
-  background: var(--bg2); border: 1px solid var(--border2);
-  border-radius: 50px; color: var(--text);
-  font-family: 'DM Sans', sans-serif; font-size: 14px;
-  outline: none; transition: .2s;
-}
-.nav-search input::placeholder { color: var(--text3); }
-.nav-search input:focus { border-color: var(--purple); background: var(--bg3); }
-.search-clear {
-  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-  background: none; border: none; color: var(--text3);
-  cursor: pointer; padding: 2px;
-  display: flex; align-items: center; justify-content: center;
-}
-.search-clear:hover { color: var(--text); }
 
 .nav-links {
   display: flex; align-items: center; gap: 2px; margin-left: auto;
@@ -218,8 +170,6 @@ function logout() {
 .cat-bar::-webkit-scrollbar { display: none; }
 
 /* Transitions */
-.fade-enter-active, .fade-leave-active { transition: opacity .2s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
 .dropdown-enter-active, .dropdown-leave-active { transition: opacity .2s, transform .2s; }
 .dropdown-enter-from, .dropdown-leave-to { opacity: 0; transform: translateY(-8px); }
 </style>

@@ -3,13 +3,16 @@ import { ref, watch, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth.store';
 import { usePlacesStore } from '@/stores/places.store';
 import { useMoviesStore } from '@/stores/movies.store';
+import { useEventsStore } from '@/stores/events.store';
 import AppButton from '@/components/AppButton.vue';
 import PlaceCard from '@/components/PlaceCard.vue';
 import MovieCard from '@/components/MovieCard.vue';
+import EventCard from '@/components/EventCard.vue';
 
 const authStore  = useAuthStore();
 const placesStore = usePlacesStore();
 const moviesStore = useMoviesStore();
+const eventsStore = useEventsStore();
 const searchQuery = ref('');
 
 function search() {
@@ -33,13 +36,14 @@ watch(() => placesStore.filters.category, (category) => {
 
 onMounted(() => {
   placesStore.fetchPlaces(true);
+  eventsStore.fetchHighlights();
 });
 </script>
 
 <template>
   <div class="home-container">
     <section class="hero">
-      <h1>Descubra o melhor de <span>sua cidade</span></h1>
+      <h1>Descubra o melhor em <span>Campinas</span></h1>
       <p>Encontre parques, museus, teatros e eventos em um só lugar.</p>
 
       <div class="search-bar">
@@ -71,6 +75,15 @@ onMounted(() => {
           </AppButton>
         </div>
       </template>
+    </section>
+
+    <section class="grid-section" v-if="eventsStore.highlights.length">
+      <div class="section-header">
+        <h2>Próximos eventos</h2>
+      </div>
+      <div class="cards-grid">
+        <EventCard v-for="event in eventsStore.highlights" :key="event.id" :event="event" />
+      </div>
     </section>
 
     <section class="grid-section" v-if="placesStore.filters.category === 'CINEMA' && (moviesStore.loading || moviesStore.items.length)">

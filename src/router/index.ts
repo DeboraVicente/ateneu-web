@@ -7,6 +7,8 @@ import EventDetailView from '@/views/EventDetailView.vue';
 import PlaceDetailView from '@/views/PlaceDetailView.vue';
 import FavoritesView from '@/views/FavoritesView.vue';
 import AuthView from '@/views/AuthView.vue';
+import TermsView from '@/views/TermsView.vue';
+import PrivacyView from '@/views/PrivacyView.vue';
 import NotFoundView from '@/views/NotFoundView.vue';
 
 const routes = [
@@ -17,6 +19,8 @@ const routes = [
   { path: '/local/:id', name: 'place-detail', component: PlaceDetailView },
   { path: '/favoritos', name: 'favorites', component: FavoritesView, meta: { requiresAuth: true } },
   { path: '/auth', name: 'auth', component: AuthView },
+  { path: '/termos', name: 'terms', component: TermsView },
+  { path: '/privacidade', name: 'privacy', component: PrivacyView },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView },
 ];
 

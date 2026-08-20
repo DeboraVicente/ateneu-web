@@ -8,12 +8,6 @@
         <input v-model="search" type="text" placeholder="Buscar local ou endereço..." class="input-base" style="padding-left: 36px;" @input="onSearch"/>
       </div>
 
-      <div class="map-cat-pills">
-        <button v-for="cat in categories" :key="cat.value" class="pill" :class="{ active: activeCategory === cat.value }" @click="setCategory(cat.value)">
-          <component :is="categoryIcon(cat.value)" :size="14" /> {{ cat.label }}
-        </button>
-      </div>
-
       <!-- Em cartaz no cinema — só quando filtrando por Cinema -->
       <div v-if="placesStore.filters.category === 'CINEMA'" class="map-movies">
         <div class="map-movies-header">Em cartaz no cinema</div>
@@ -92,9 +86,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick, createApp, h } from 'vue';
+import { useRoute } from 'vue-router';
 import L from '@/lib/leaflet';
 import 'leaflet.markercluster';
 import { Search, MapPin, X, Check, LocateFixed } from 'lucide-vue-next';
+import api from '@/services/api';
 import { usePlacesStore } from '@/stores/places.store';
 import { useMoviesStore } from '@/stores/movies.store';
 import { categoryIcon } from '@/lib/categoryIcons';
@@ -104,12 +100,13 @@ import AppButton from '@/components/AppButton.vue';
 import MovieCard from '@/components/MovieCard.vue';
 import type { Place } from '@/stores/places.store';
 
+const route = useRoute();
+
 const CAMPINAS = { lat: -22.9099, lng: -47.0626 };
 
 const placesStore    = usePlacesStore();
 const moviesStore    = useMoviesStore();
 const search         = ref('');
-const activeCategory = ref(placesStore.filters.category);
 const selectedPlace  = ref<Place | null>(null);
 const mapEl          = ref<HTMLDivElement | null>(null);
 const radiusKm       = ref(10);
@@ -121,20 +118,6 @@ let map: L.Map | null = null;
 let clusterGroup: L.MarkerClusterGroup | null = null;
 
 const LABEL: Record<string,string> = { CINEMA:'Cinema', TEATRO:'Teatro', SHOWS:'Shows', GASTRONOMIA:'Gastronomia', MUSEU:'Museu', PARQUE:'Parque', IGREJA:'Igreja', FEIRA:'Feira', EXPOSICAO:'Exposição', AR_LIVRE:'Ar Livre', OUTRO:'Local' };
-
-const categories = [
-  { value: '',            label: 'Todos' },
-  { value: 'MUSEU',       label: 'Museus' },
-  { value: 'SHOWS',       label: 'Shows' },
-  { value: 'TEATRO',      label: 'Teatros' },
-  { value: 'PARQUE',      label: 'Parques' },
-  { value: 'EXPOSICAO',   label: 'Exposições' },
-  { value: 'CINEMA',      label: 'Cinemas' },
-  { value: 'IGREJA',      label: 'Igrejas' },
-  { value: 'FEIRA',       label: 'Feiras' },
-  { value: 'AR_LIVRE',    label: 'Ar Livre' },
-  { value: 'OUTRO',       label: 'Outros' },
-];
 
 // Cache do HTML (SVG) de cada ícone de categoria — evita remontar o mesmo
 // componente Vue centenas de vezes ao desenhar os marcadores do mapa.
@@ -176,6 +159,13 @@ function renderMarkers() {
 watch(() => placesStore.items, renderMarkers);
 
 onMounted(async () => {
+  // Chegando de um link "Ver no Mapa" (ex: detalhe de local/evento) — mostra o
+  // conjunto completo, sem herdar um filtro de categoria de uma navegação anterior.
+  const targetPlaceId = typeof route.query.local === 'string' ? route.query.local : null;
+  if (targetPlaceId) {
+    placesStore.filters.category = '';
+  }
+
   // O clustering absorve o custo de renderizar muitos pinos, então busca bem mais
   // que os 20 padrão para o mapa dar uma ideia real da cobertura de Campinas.
   placesStore.filters.limit = 1000;
@@ -193,6 +183,20 @@ onMounted(async () => {
   clusterGroup = L.markerClusterGroup();
   map.addLayer(clusterGroup);
   renderMarkers();
+
+  if (targetPlaceId) {
+    let target = placesStore.items.find(p => p.id === targetPlaceId);
+    if (!target) {
+      try {
+        const { data } = await api.get(`/places/${targetPlaceId}`);
+        target = data.data;
+      } catch { /* local pode ter sido removido — ignora e mantém a visão padrão */ }
+    }
+    if (target) {
+      selectedPlace.value = target;
+      map.setView([target.lat, target.lng], 16);
+    }
+  }
 });
 
 onUnmounted(() => {
@@ -206,13 +210,8 @@ function onSearch() {
   clearTimeout(debounce);
   debounce = setTimeout(() => placesStore.setFilter('search', search.value), 350);
 }
-function setCategory(val: string) {
-  activeCategory.value = val;
-  placesStore.setFilter('category', val);
-}
-
-// Cobre tanto trocar de categoria aqui no mapa quanto chegar nesta página
-// já filtrando por Cinema (ex: vindo da Home).
+// Cobre tanto trocar de categoria (agora via cat-bar do AppNav) quanto chegar
+// nesta página já filtrando por Cinema (ex: vindo da Home).
 watch(() => placesStore.filters.category, (category) => {
   if (category === 'CINEMA' && !moviesStore.items.length) {
     moviesStore.fetchNowPlaying();
@@ -245,8 +244,6 @@ async function findNearby() {
 .map-sidebar { width: 320px; flex-shrink: 0; background: var(--bg2); border-right: 1px solid var(--border2); display: flex; flex-direction: column; overflow: hidden; }
 .map-search { padding: 14px 16px 10px; position: relative; }
 .search-icon-sm { position: absolute; left: 28px; top: 50%; transform: translateY(-50%); color: var(--text3); }
-.map-cat-pills { display: flex; gap: 6px; padding: 0 16px 12px; overflow-x: auto; scrollbar-width: none; flex-wrap: wrap; }
-.map-cat-pills::-webkit-scrollbar { display: none; }
 
 .map-movies { padding: 0 16px 14px; border-bottom: 1px solid var(--border2); }
 .map-movies-header { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; margin-bottom: 10px; }
@@ -299,6 +296,15 @@ async function findNearby() {
 .popup-enter-from, .popup-leave-to { opacity: 0; transform: scale(.95); }
 .fade-enter-active, .fade-leave-active { transition: opacity .2s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* Mobile: sidebar + mapa lado a lado não cabe em telas estreitas — empilha,
+   com a lista de resultados ocupando altura fixa e rolável acima do mapa. */
+@media(max-width:780px) {
+  .map-page { flex-direction: column; }
+  .map-sidebar { width: 100%; height: 45vh; flex-shrink: 0; border-right: none; border-bottom: 1px solid var(--border2); }
+  .map-top-actions { left: 8px; right: 8px; flex-wrap: wrap; justify-content: center; }
+  .map-popup { left: 50%; width: min(220px, calc(100% - 24px)); }
+}
 </style>
 
 <style>

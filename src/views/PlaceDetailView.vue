@@ -30,9 +30,12 @@
       </div>
 
       <div class="detail-side">
-        <AppButton block style="margin-bottom:12px;" @click="favs.toggle(place.id)">
+        <AppButton block style="margin-bottom:12px;" @click="handleFav">
           <Heart :size="16" :fill="favs.isFaved(place.id) ? 'currentColor' : 'none'" />
           {{ favs.isFaved(place.id) ? 'Remover dos favoritos' : 'Favoritar' }}
+        </AppButton>
+        <AppButton variant="ghost" block style="margin-bottom:12px;" :to="`/mapa?local=${place.id}`">
+          <MapPin :size="16" /> Ver no Mapa
         </AppButton>
         <div v-if="place.priceLevel" class="price-badge">{{'$'.repeat(place.priceLevel)}}</div>
       </div>
@@ -46,7 +49,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { ChevronLeft, MapPin, Phone, Globe, Heart } from 'lucide-vue-next';
 import api from '@/services/api';
 import { useFavoritesStore } from '@/stores/favorites.store';
@@ -55,9 +58,18 @@ import AppButton from '@/components/AppButton.vue';
 import type { Place } from '@/stores/places.store';
 
 const route   = useRoute();
+const router  = useRouter();
 const favs    = useFavoritesStore();
 const place   = ref<Place | null>(null);
 const loading = ref(true);
+
+async function handleFav() {
+  if (!place.value) return;
+  const ok = await favs.toggle(place.value.id);
+  if (!ok) {
+    router.push({ name: 'auth', query: { redirect: route.fullPath } });
+  }
+}
 
 const LABEL: Record<string,string> = { CINEMA:'Cinema', TEATRO:'Teatro', SHOWS:'Shows', GASTRONOMIA:'Gastronomia', MUSEU:'Museu', PARQUE:'Parque', IGREJA:'Igreja', FEIRA:'Feira', EXPOSICAO:'Exposição', AR_LIVRE:'Ar Livre', OUTRO:'Local' };
 const GRADIENTS: Record<string,string> = { MUSEU:'linear-gradient(135deg,#0d1a2b,#1a3d6b,#2c6ba4)', PARQUE:'linear-gradient(135deg,#0d2b1a,#1a6b3d,#2ca46b)', GASTRONOMIA:'linear-gradient(135deg,#1a0b2e,#3d1a6e,#6b2ca4)', SHOWS:'linear-gradient(135deg,#1a0633,#3d1070,#6b1fa4)' };
