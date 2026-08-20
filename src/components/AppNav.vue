@@ -172,4 +172,14 @@ function logout() {
 /* Transitions */
 .dropdown-enter-active, .dropdown-leave-active { transition: opacity .2s, transform .2s; }
 .dropdown-enter-from, .dropdown-leave-to { opacity: 0; transform: translateY(-8px); }
+
+/* Mobile: logo, respiro e links reduzidos para os botões (Mapa, Calendário,
+   Entrar) caberem numa linha só sem quebrar o header. */
+@media(max-width:600px) {
+  .app-nav { padding: 0 12px; gap: 8px; }
+  .nav-logo img { height: 28px; }
+  .nav-links { gap: 0; }
+  .nav-link { padding: 6px 8px; font-size: 12.5px; }
+  .cat-bar { padding: 10px 12px; }
+}
 </style>

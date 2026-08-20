@@ -285,6 +285,12 @@ onMounted(() => {
 .cal-layout { display: grid; grid-template-columns: 1fr 300px; gap: 32px; max-width: 1300px; margin: 0 auto; padding: 32px 40px 80px; }
 @media(max-width:900px) { .cal-layout { grid-template-columns: 1fr; } }
 
+/* Itens de grid têm min-width:auto por padrão, que usa o conteúdo interno
+   (o grid de 7 colunas do calendário) como largura mínima — isso impede o
+   encolhimento e força overflow horizontal em telas estreitas. */
+.cal-main { min-width: 0; }
+.cal-days-header, .cal-grid { min-width: 0; }
+
 .section-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -.4px; }
 
 /* Header */
@@ -381,6 +387,8 @@ onMounted(() => {
    busca ocupar a largura toda em vez de uma coluna fixa de 180px. */
 @media(max-width:600px) {
   .cal-layout { padding: 16px 12px 60px; gap: 20px; }
+  .cal-header { flex-wrap: wrap; gap: 10px; }
+  .section-title { font-size: 18px; }
   .cal-cell { min-height: 52px; padding: 6px 4px; }
   .cell-num { font-size: 12px; }
   .search-wrap { flex: 1 1 100%; }
