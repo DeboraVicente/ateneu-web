@@ -131,8 +131,11 @@
     <!-- RIGHT: Highlights sidebar -->
     <aside class="cal-sidebar">
       <h2 class="section-title" style="margin-bottom: 16px;">Destaques da Semana</h2>
+      <div v-if="!weekHighlights.length" class="events-empty" style="padding: 24px 0;">
+        <span>Nenhum evento nos próximos 7 dias</span>
+      </div>
       <RouterLink
-        v-for="event in eventsStore.highlights"
+        v-for="event in weekHighlights"
         :key="'side-'+event.id"
         :to="`/evento/${event.id}`"
         class="side-card card-surface"
@@ -237,6 +240,19 @@ const selectedDateLabel = computed(() => {
 const selectedEvents = computed(() => {
   if (!selectedDate.value) return monthEvents.value;
   return eventsStore.byDate[selectedDate.value] ?? [];
+});
+
+// A sidebar promete "da Semana" — o fetch de highlights traz os N próximos
+// eventos independente da data, o que podia trazer coisas do mês inteiro
+// quando a semana atual tinha poucos cadastros. Recorta aqui para os
+// próximos 7 dias de fato.
+const weekHighlights = computed(() => {
+  const weekLimit = new Date(now);
+  weekLimit.setDate(weekLimit.getDate() + 7);
+  return eventsStore.highlights.filter(ev => {
+    const d = new Date(ev.date);
+    return d >= now && d <= weekLimit;
+  });
 });
 
 function toDateStr(y: number, m: number, d: number) {
